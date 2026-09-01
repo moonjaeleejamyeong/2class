@@ -2,13 +2,14 @@ import random
 import time
 
 def play_github_nuke_game():
-    print("=== [GitHub Repository: Project-Ultimate-Nuke] ===")
-    print("목표: 깃허브 커밋과 푸시로 원자폭탄의 위력을 강화하세요. 단, 안정성이 0이 되면 조기 폭발합니다!\n")
-    
     power_kt = 10     # 초기 위력 (킬로톤)
     stability = 100   # 시스템 안정성 (%)
     commits = 0
 
+    print("=== [GitHub Repository: Project-Ultimate-Nuke] ===")
+    print("목표: 깃허브 커밋과 푸시로 원자폭탄의 위력을 강화하세요.")
+    print("주의: push할 때마다 일정 확률로 '랜덤 폭발'이 일어날 수 있습니다!\n")
+    
     while True:
         print(f"현재 위력: {power_kt:,} kt | 안정성: {stability}% | 총 커밋: {commits}회")
         command = input("git 명령어 입력 (commit / push / pull / status / exit): ").strip().lower()
@@ -24,9 +25,20 @@ def play_github_nuke_game():
             print("✨ [git commit] 핵분열 알고리즘 최적화 코드를 커밋했습니다. 위력이 상승합니다.")
             
         elif "push" in command:
+            # 20% 확률로 랜덤 폭발 발생 (원한다면 확률 조절 가능)
+            if random.random() < 0.20:
+                print("\n💥 [CRITICAL EXPLOSION] 원격 저장소로 푸시하던 중 불안정한 코드로 인해 원자폭탄이 갑자기 폭발했습니다!")
+                print("초기화면으로 돌아갑니다...\n")
+                time.sleep(2)
+                # 게임 상태 리셋
+                power_kt = 10
+                stability = 100
+                commits = 0
+                continue
+
             if random.random() < 0.25:
                 stability -= 25
-                print("💥 [Merge Conflict!] 충돌 해결 실패로 방사능 누출 발생! 안정성이 급감합니다.")
+                print("⚠️ [Merge Conflict!] 충돌 해결 실패로 방사능 누출 발생! 안정성이 급감합니다.")
             else:
                 power_kt += random.randint(300, 700)
                 stability -= random.randint(5, 15)
@@ -42,7 +54,7 @@ def play_github_nuke_game():
         else:
             print("❌ 지원하지 않는 명령어입니다. (commit, push, pull, status 중 선택)")
 
-        # 게임 종료 조건
+        # 안정성 0 이하로 떨어질 때의 종료 조건
         if stability <= 0:
             print("\n🔥 [MELTDOWN] 시스템 안정성 0% 도달! 원자폭탄이 개발자 PC와 함께 증발했습니다. Game Over.")
             break
