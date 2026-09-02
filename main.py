@@ -88,7 +88,7 @@ game_html = """
     </div>
 
     <div class="log" id="logBox">
-        게임이 시작되었습니다. 합리적인 판매 가격과 확실한 이익 구조가 적용되었습니다!<br>
+        게임이 시작되었습니다. 4레벨까지는 판매 시 손해가 나며, 5레벨부터 이득을 볼 수 있습니다!<br>
     </div>
 </div>
 
@@ -108,10 +108,14 @@ game_html = """
 
     function getSellPrice(lvl) {
         if (lvl === 1) return 0;
-        // 누적 강화 비용을 계산하여, 판매 시 항상 투자금보다 더 많은 이익을 얻도록 설정
+        // 4레벨까지는 투자한 누적 비용보다 적게 책정하여 판매가 불리하게 설정
+        if (lvl === 2) return 100;  // 누적 비용 200원 대비 손해
+        if (lvl === 3) return 350;  // 누적 비용 600원 대비 손해
+        if (lvl === 4) return 800;  // 누적 비용 1200원 대비 손해
+        
+        // 5레벨부터는 누적 비용에 이익금을 더해줌
         let cumulativeCost = 100 * lvl * (lvl - 1);
-        let profitBonus = 400 * (lvl - 1);
-        return cumulativeCost + profitBonus;
+        return cumulativeCost + (lvl * 400);
     }
 
     function updateUI() {
