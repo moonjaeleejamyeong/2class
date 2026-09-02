@@ -88,7 +88,7 @@ game_html = """
     </div>
 
     <div class="log" id="logBox">
-        게임이 시작되었습니다. 3단계까지는 100% 성공합니다!<br>
+        게임이 시작되었습니다. 3단계까진 100% 성공하며, 판매 금액이 대폭 상향되었습니다!<br>
     </div>
 </div>
 
@@ -106,6 +106,11 @@ game_html = """
         return Math.max(20, 100 - (lvl * 4));
     }
 
+    function getSellPrice(lvl) {
+        // 판매 금액 공식을 대폭 상향 (기본 500원 시작, 배수 증가)
+        return Math.floor(500 * Math.pow(1.85, lvl - 1));
+    }
+
     function updateUI() {
         document.getElementById("money").innerText = money.toLocaleString();
         document.getElementById("level").innerText = level;
@@ -120,7 +125,7 @@ game_html = """
             sellBtn.innerText = "원자폭탄 판매 (1단계는 판매 불가)";
         } else {
             sellBtn.disabled = false;
-            let currentSellPrice = Math.floor(200 * Math.pow(1.5, level - 1));
+            let currentSellPrice = getSellPrice(level);
             sellBtn.innerText = `원자폭탄 판매 (${currentSellPrice.toLocaleString()}원)`;
         }
 
@@ -171,7 +176,7 @@ game_html = """
             addLog("❌ 1단계 원자폭탄은 판매할 수 없습니다!");
             return;
         }
-        let sellPrice = Math.floor(200 * Math.pow(1.5, level - 1));
+        let sellPrice = getSellPrice(level);
         money += sellPrice;
         addLog(`💰 ${level}단계 원자폭탄을 ${sellPrice.toLocaleString()}원에 판매했습니다.`);
         level = 1;
