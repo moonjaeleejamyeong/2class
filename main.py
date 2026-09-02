@@ -88,7 +88,7 @@ game_html = """
     </div>
 
     <div class="log" id="logBox">
-        게임이 시작되었습니다. 3단계까진 100% 성공하며, 판매 금액이 대폭 상향되었습니다!<br>
+        게임이 시작되었습니다. 합리적인 판매 가격과 확실한 이익 구조가 적용되었습니다!<br>
     </div>
 </div>
 
@@ -107,8 +107,11 @@ game_html = """
     }
 
     function getSellPrice(lvl) {
-        // 판매 금액 공식을 대폭 상향 (기본 500원 시작, 배수 증가)
-        return Math.floor(500 * Math.pow(1.85, lvl - 1));
+        if (lvl === 1) return 0;
+        // 누적 강화 비용을 계산하여, 판매 시 항상 투자금보다 더 많은 이익을 얻도록 설정
+        let cumulativeCost = 100 * lvl * (lvl - 1);
+        let profitBonus = 400 * (lvl - 1);
+        return cumulativeCost + profitBonus;
     }
 
     function updateUI() {
