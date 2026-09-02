@@ -76,7 +76,7 @@ game_html = """
 <div class="container">
     <div class="status">
         <p>소유 돈: <span id="money">5000</span>원 | 폭발 방지권: <span id="shield">0</span>장</p>
-        <p>현재 레벨: <span id="level">1</span>단계 (성공 확률: <span id="prob">95</span>%)</p>
+        <p>현재 레벨: <span id="level">1</span>단계 (성공 확률: <span id="prob">100</span>%)</p>
     </div>
 
     <div class="bomb-image" id="bombImg">💣</div>
@@ -88,7 +88,7 @@ game_html = """
     </div>
 
     <div class="log" id="logBox">
-        게임이 시작되었습니다. 1단계 폭탄은 판매할 수 없습니다!<br>
+        게임이 시작되었습니다. 3단계까지는 100% 성공합니다!<br>
     </div>
 </div>
 
@@ -100,6 +100,11 @@ game_html = """
     const bombIcons = {
         1: "💣", 3: "🧨", 5: "🔥", 8: "☢️", 10: "⚛️", 13: "🌋", 15: "🌍"
     };
+
+    function getSuccessProb(lvl) {
+        if (lvl < 3) return 100;
+        return Math.max(20, 100 - (lvl * 4));
+    }
 
     function updateUI() {
         document.getElementById("money").innerText = money.toLocaleString();
@@ -119,7 +124,7 @@ game_html = """
             sellBtn.innerText = `원자폭탄 판매 (${currentSellPrice.toLocaleString()}원)`;
         }
 
-        let prob = Math.max(20, 100 - (level * 4));
+        let prob = getSuccessProb(level);
         document.getElementById("prob").innerText = prob;
 
         let currentIcon = "💣";
@@ -143,7 +148,7 @@ game_html = """
         }
 
         money -= cost;
-        let successProb = Math.max(20, 100 - (level * 4));
+        let successProb = getSuccessProb(level);
         let chance = Math.random() * 100;
 
         if (chance < successProb) {
