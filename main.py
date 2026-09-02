@@ -5,7 +5,6 @@ st.set_page_config(page_title="원자폭탄 강화하기", page_icon="💥", lay
 
 st.markdown("<h1 style='text-align: center;'>💥 원자폭탄 강화하기 💥</h1>", unsafe_allow_html=True)
 
-# HTML, CSS, JavaScript 게임 코드를 스트림릿에 삽입
 game_html = """
 <!DOCTYPE html>
 <html lang="ko">
@@ -56,6 +55,7 @@ game_html = """
         button:hover { background-color: #ff5722; }
         .sell-btn { background-color: #4CAF50; }
         .sell-btn:hover { background-color: #45a049; }
+        .sell-btn:disabled { background-color: #555; cursor: not-allowed; }
         .shop-btn { background-color: #2196F3; }
         .shop-btn:hover { background-color: #0b7dda; }
         .log {
@@ -83,12 +83,12 @@ game_html = """
 
     <div>
         <button id="upgradeBtn" onclick="tryUpgrade()">강화하기 (<span id="cost">200</span>원)</button>
-        <button class="sell-btn" onclick="sellBomb()">원자폭탄 판매 (<span id="sellPrice">150</span>원)</button>
+        <button id="sellBtn" class="sell-btn" onclick="sellBomb()" disabled>원자폭탄 판매 (1단계는 판매 불가)</button>
         <button class="shop-btn" onclick="buyShield()">폭발 방지권 구매 (1,000원)</button>
     </div>
 
     <div class="log" id="logBox">
-        게임이 시작되었습니다. 행운을 빕니다!<br>
+        게임이 시작되었습니다. 1단계 폭탄은 판매할 수 없습니다!<br>
     </div>
 </div>
 
@@ -109,8 +109,15 @@ game_html = """
         let currentCost = level * 200;
         document.getElementById("cost").innerText = currentCost.toLocaleString();
         
-        let currentSellPrice = Math.floor(200 * Math.pow(1.5, level - 1));
-        document.getElementById("sellPrice").innerText = currentSellPrice.toLocaleString();
+        let sellBtn = document.getElementById("sellBtn");
+        if (level === 1) {
+            sellBtn.disabled = true;
+            sellBtn.innerText = "원자폭탄 판매 (1단계는 판매 불가)";
+        } else {
+            sellBtn.disabled = false;
+            let currentSellPrice = Math.floor(200 * Math.pow(1.5, level - 1));
+            sellBtn.innerText = `원자폭탄 판매 (${currentSellPrice.toLocaleString()}원)`;
+        }
 
         let prob = Math.max(20, 100 - (level * 4));
         document.getElementById("prob").innerText = prob;
@@ -155,6 +162,10 @@ game_html = """
     }
 
     function sellBomb() {
+        if (level === 1) {
+            addLog("❌ 1단계 원자폭탄은 판매할 수 없습니다!");
+            return;
+        }
         let sellPrice = Math.floor(200 * Math.pow(1.5, level - 1));
         money += sellPrice;
         addLog(`💰 ${level}단계 원자폭탄을 ${sellPrice.toLocaleString()}원에 판매했습니다.`);
@@ -181,5 +192,4 @@ game_html = """
 </html>
 """
 
-# 스트림릿 내에 HTML 컴포넌트 렌더링 (높이 설정)
 components.html(game_html, height=520, scrolling=True)
