@@ -32,14 +32,47 @@ game_html = """
             font-size: 16px;
             margin: 10px 0;
         }
-        .bomb-image {
-            font-size: 70px;
-            margin: 15px 0;
-            min-height: 80px;
+        .bomb-container {
+            min-height: 100px;
             display: flex;
             align-items: center;
             justify-content: center;
+            margin: 15px 0;
         }
+        .bomb-image {
+            font-size: 70px;
+            transition: transform 0.2s;
+        }
+
+        /* 애니메이션 효과 클래스들 */
+        @keyframes bounceSuccess {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3) rotate(10deg); filter: drop-shadow(0 0 15px #4CAF50); }
+            100% { transform: scale(1); }
+        }
+        .anim-success {
+            animation: bounceSuccess 0.5s ease;
+        }
+
+        @keyframes explodeBomb {
+            0% { transform: scale(1); filter: brightness(1); }
+            30% { transform: scale(1.6); filter: drop-shadow(0 0 30px #ff4500) brightness(1.5); }
+            60% { transform: scale(0.8) rotate(-15deg); }
+            100% { transform: scale(1); filter: brightness(1); }
+        }
+        .anim-explode {
+            animation: explodeBomb 0.6s ease;
+        }
+
+        @keyframes shieldShield {
+            0% { transform: scale(1); }
+            30% { transform: scale(1.2); filter: drop-shadow(0 0 20px #2196F3); }
+            100% { transform: scale(1); }
+        }
+        .anim-shield {
+            animation: shieldShield 0.6s ease;
+        }
+
         button {
             background-color: #ff4500;
             color: white;
@@ -79,7 +112,9 @@ game_html = """
         <p>현재 레벨: <span id="level">1</span>단계 (성공 확률: <span id="prob">100</span>%)</p>
     </div>
 
-    <div class="bomb-image" id="bombImg">💣</div>
+    <div class="bomb-container">
+        <div class="bomb-image" id="bombImg">💣</div>
+    </div>
 
     <div>
         <button id="upgradeBtn" onclick="tryUpgrade()">강화하기 (<span id="cost">200</span>원)</button>
@@ -88,7 +123,7 @@ game_html = """
     </div>
 
     <div class="log" id="logBox">
-        게임이 시작되었습니다. 4레벨까지는 판매 시 손해가 나며, 5레벨부터 이득을 볼 수 있습니다!<br>
+        게임이 시작되었습니다. 강화 성공, 방어, 폭발 시 애니메이션 모션이 실행됩니다!<br>
     </div>
 </div>
 
@@ -108,14 +143,19 @@ game_html = """
 
     function getSellPrice(lvl) {
         if (lvl === 1) return 0;
-        // 4레벨까지는 투자한 누적 비용보다 적게 책정하여 판매가 불리하게 설정
-        if (lvl === 2) return 100;  // 누적 비용 200원 대비 손해
-        if (lvl === 3) return 350;  // 누적 비용 600원 대비 손해
-        if (lvl === 4) return 800;  // 누적 비용 1200원 대비 손해
-        
-        // 5레벨부터는 누적 비용에 이익금을 더해줌
+        if (lvl === 2) return 100;
+        if (lvl === 3) return 350;
+        if (lvl === 4) return 800;
         let cumulativeCost = 100 * lvl * (lvl - 1);
         return cumulativeCost + (lvl * 400);
+    }
+
+    function triggerAnimation(animClass) {
+        const bombElement = document.getElementById("bombImg");
+        bombElement.className = "bomb-image " + animClass;
+        setTimeout(() => {
+            bombElement.className = "bomb-image";
+        }, 600);
     }
 
     function updateUI() {
@@ -165,13 +205,16 @@ game_html = """
 
         if (chance < successProb) {
             level++;
+            triggerAnimation("anim-success");
             addLog(`✨ <span style="color: #4CAF50;">성공!</span> 원자폭탄이 ${level}단계로 강화되었습니다.`);
         } else {
             if (shield > 0) {
                 shield--;
+                triggerAnimation("anim-shield");
                 addLog(`🛡️ <span style="color: #2196F3;">방어 성공!</span> 폭발 방지권이 발동했습니다.`);
             } else {
                 level = 1;
+                triggerAnimation("anim-explode");
                 addLog(`💥 <span style="color: #ff4500;">실패 및 폭발!</span> 1단계로 초기화되었습니다.`);
             }
         }
@@ -209,4 +252,4 @@ game_html = """
 </html>
 """
 
-components.html(game_html, height=520, scrolling=True)
+components.html(game_html, height=540, scrolling=True)
