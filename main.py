@@ -1,24 +1,29 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="원자폭탄 강화하기", page_icon="💥", layout="centered")
+# 스트리밋 페이지 설정
+st.set_page_config(page_title="폭탄 강화하기 - 폭발물의 진화", page_icon="💥", layout="centered")
 
-st.markdown("<h1 style='text-align: center;'>💥 원자폭탄 강화하기 💥</h1>", unsafe_allow_html=True)
+# 스트리밋 제목
+st.markdown("<h1 style='text-align: center;'>💥 폭탄 강화하기: 폭발물의 진화 💥</h1>", unsafe_allow_html=True)
 
+# 게임 HTML/JS/CSS 코드
 game_html = """
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bomb Upgrade Game</title>
     <style>
         body {
-            font-family: 'Malgun Gothic', sans-serif;
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
             background-color: #1a1a1a;
             color: #ffffff;
             text-align: center;
             margin: 0;
             padding: 10px;
+            overflow-x: hidden; /* 진동 애니메이션 시 스크롤 방지 */
         }
         .container {
             max-width: 480px;
@@ -27,74 +32,119 @@ game_html = """
             padding: 15px;
             border-radius: 10px;
             box-shadow: 0 0 15px rgba(255, 69, 0, 0.3);
-            position: relative;
-            overflow: hidden;
+            position: relative; /* 모달/파티클 기준점 */
         }
         .status {
             font-size: 16px;
             margin: 10px 0;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 8px;
         }
+        .status p { margin: 5px 0; }
+        .money-text { color: #ffd700; font-weight: bold; }
+        .shield-text { color: #2196F3; font-weight: bold; }
+        .level-text { color: #ff4500; font-weight: bold; font-size: 1.2em; }
+        .prob-text { color: #aaa; font-size: 0.9em; }
+
         .bomb-container {
-            min-height: 120px;
+            min-height: 150px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             margin: 15px 0;
+            background: #151515;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 10px;
             position: relative;
         }
         .bomb-image {
-            font-size: 70px;
-            transition: transform 0.2s;
-            max-width: 100px;
-            max-height: 100px;
+            max-width: 120px;
+            max-height: 120px;
             object-fit: contain;
+            margin-bottom: 8px;
+            transition: transform 0.1s ease-out; /* 기본 트랜지션 */
+        }
+        .bomb-name {
+            font-size: 14px;
+            font-weight: bold;
+            color: #ccc;
         }
 
-        /* 화려하게 업그레이드된 애니메이션 효과 클래스들 */
-        @keyframes bounceSuccess {
-            0% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 5px #4CAF50); }
-            30% { transform: scale(1.5) rotate(-15deg); filter: drop-shadow(0 0 35px #00FF66) brightness(1.5); }
-            60% { transform: scale(1.2) rotate(15deg); filter: drop-shadow(0 0 25px #00FF66); }
-            100% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 0px transparent); }
+        /* --- 화려한 애니메이션 모션 --- */
+        
+        /* [전체화면 진동] 폭발 및 강화 시 */
+        @keyframes screenShake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+        .shake-screen {
+            animation: screenShake 0.4s;
+            animation-iteration-count: 1;
+        }
+
+        /* [성공 모션] 회전하며 확대/축소 및 발광 */
+        @keyframes successPop {
+            0% { transform: scale(0.5) rotate(-180deg); filter: drop-shadow(0 0 0px #4CAF50); opacity: 0; }
+            60% { transform: scale(1.3) rotate(10deg); filter: drop-shadow(0 0 20px #00FF00); opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 5px #4CAF50); }
         }
         .anim-success {
-            animation: bounceSuccess 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: successPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        @keyframes explodeBomb {
+        /* [폭발 모션] 붉게 변하며 강렬한 진동 후 초기화 */
+        @keyframes explodeRed {
             0% { transform: scale(1); filter: brightness(1); }
-            20% { transform: scale(2) rotate(10deg); filter: drop-shadow(0 0 50px #ff0000) brightness(2); }
-            40% { transform: scale(0.3) rotate(-20deg); filter: drop-shadow(0 0 80px #ff4500) brightness(3); }
-            70% { transform: scale(1.3); filter: drop-shadow(0 0 30px #ff0000); }
-            100% { transform: scale(1) rotate(0deg); filter: brightness(1); }
+            20% { transform: scale(1.5) rotate(5deg); filter: brightness(2) drop-shadow(0 0 30px #ff0000); }
+            40% { transform: scale(1.8) rotate(-5deg); }
+            60% { transform: scale(0.2); filter: brightness(5) drop-shadow(0 0 50px #ff4500); opacity: 0; }
+            100% { transform: scale(1); filter: brightness(1); opacity: 1; }
         }
         .anim-explode {
-            animation: explodeBomb 0.7s ease-in-out;
+            animation: explodeRed 0.8s ease-out;
         }
 
-        @keyframes shieldShield {
-            0% { transform: scale(1); }
-            30% { transform: scale(1.4); filter: drop-shadow(0 0 40px #00D2FF) brightness(1.8); }
-            60% { transform: scale(0.9); filter: drop-shadow(0 0 20px #0088FF); }
-            100% { transform: scale(1); filter: drop-shadow(0 0 0px transparent); }
+        /* [방어 모션] 푸른 막이 생기며 충격 흡수 */
+        @keyframes shieldAbsorb {
+            0% { transform: scale(1); filter: drop-shadow(0 0 0px #2196F3); }
+            30% { transform: scale(1.2); filter: drop-shadow(0 0 20px #00D2FF); }
+            100% { transform: scale(1); filter: drop-shadow(0 0 5px #2196F3); }
         }
         .anim-shield {
-            animation: shieldShield 0.6s ease-out;
+            animation: shieldAbsorb 0.6s ease-out;
+        }
+        /* 푸른 방어막 시각 효과 */
+        .shield-wave {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            border: 4px solid #00D2FF;
+            opacity: 0;
+            pointer-events: none;
+        }
+        @keyframes shieldWaveAnim {
+            0% { width: 10px; height: 10px; opacity: 1; }
+            100% { width: 200px; height: 200px; opacity: 0; }
+        }
+        .shield-wave.active {
+            animation: shieldWaveAnim 0.5s ease-out;
         }
 
-        /* 진동 효과 */
-        @keyframes containerShake {
-            0% { transform: translate(0, 0); }
-            20% { transform: translate(-10px, 10px); }
-            40% { transform: translate(10px, -10px); }
-            60% { transform: translate(-10px, -5px); }
-            80% { transform: translate(10px, 5px); }
-            100% { transform: translate(0, 0); }
-        }
-        .shake {
-            animation: containerShake 0.4s ease-in-out;
-        }
-
+        /* --- 버튼 및 로그 --- */
         button {
             background-color: #ff4500;
             color: white;
@@ -106,13 +156,17 @@ game_html = """
             cursor: pointer;
             font-weight: bold;
             width: 85%;
+            transition: background 0.2s, transform 0.1s;
         }
         button:hover { background-color: #ff5722; }
+        button:active { transform: scale(0.97); }
+        button:disabled { background-color: #555 !important; cursor: not-allowed; transform: scale(1) !important; }
+
         .sell-btn { background-color: #4CAF50; }
         .sell-btn:hover { background-color: #45a049; }
-        .sell-btn:disabled { background-color: #555; cursor: not-allowed; }
         .shop-btn { background-color: #2196F3; }
         .shop-btn:hover { background-color: #0b7dda; }
+
         .log {
             margin-top: 15px;
             height: 90px;
@@ -123,50 +177,62 @@ game_html = """
             font-size: 13px;
             text-align: left;
             border: 1px solid #444;
+            color: #aaa;
         }
 
-        /* 30단계 축하 팝업 모달 */
+        /* --- 30단계 달성 축하 팝업 --- */
         .modal {
             display: none;
-            position: absolute;
+            position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.9);
+            background-color: rgba(0, 0, 0, 0.85);
             z-index: 100;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
-            border-radius: 10px;
+            align-items: center;
+            flex-direction: column;
+            color: white;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        .modal.show { display: flex; opacity: 1; }
+        .modal-content {
+            background: linear-gradient(135deg, #2a2a2a 0%, #151515 100%);
+            padding: 30px;
+            border-radius: 15px;
+            border: 3px solid #ffd700;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            text-align: center;
         }
         .modal h2 {
-            color: #FFD700;
+            color: #ffd700;
             font-size: 28px;
-            margin-bottom: 10px;
-            text-shadow: 0 0 10px #FFD700;
-            animation: victoryGlow 1s infinite alternate;
+            margin-bottom: 15px;
+            text-shadow: 0 0 10px #ffd700;
+            animation: victoryGlow 1.5s infinite alternate;
         }
+        .modal p { font-size: 18px; margin: 10px 0; }
         @keyframes victoryGlow {
-            from { text-shadow: 0 0 10px #FFD700; transform: scale(1); }
-            to { text-shadow: 0 0 25px #FF4500; transform: scale(1.05); }
+            from { text-shadow: 0 0 10px #ffd700; }
+            to { text-shadow: 0 0 25px #ff4500, 0 0 5px #fff; }
         }
+
     </style>
 </head>
-<body>
+<body id="gameBody">
 
-<div class="container" id="mainContainer">
-    <!-- 30단계 완료 모달 -->
-    <div class="modal" id="victoryModal">
-        <h2>🎉 최종 단계 달성! 🎉</h2>
-        <p style="font-size: 18px; color: #fff;">인류 최강의 원자폭탄을 완성했습니다!</p>
-        <button onclick="closeModal()" style="width: auto; padding: 10px 25px; background: #FFD700; color: #000;">확인</button>
-    </div>
-
+<div class="container">
     <div class="status">
-        <p>소유 돈: <span id="money">5000</span>원 | 폭발 방지권: <span id="shield">0</span>장</p>
-        <p>현재 레벨: <span id="level">1</span>단계 (성공 확률: <span id="prob">100</span>%)</p>
+        <p>소유 돈: <span id="money" class="money-text">5,000</span>원 | 폭발 방지권: <span id="shield" class="shield-text">0</span>장</p>
+        <p>현재 레벨: <span id="level" class="level-text">1</span> / 30 단계 <span id="prob" class="prob-text">(성공 확률: 100%)</span></p>
     </div>
 
-    <div class="bomb-container">
-        <img class="bomb-image" id="bombImg" src="https://cdn-icons-png.flaticon.com/512/112/112683.png" alt="Bomb">
+    <div class="bomb-container" id="bombContainer">
+        <!-- 방어막 파동 효과 -->
+        <div class="shield-wave" id="shieldWave"></div>
+        <!-- 폭탄 이미지 -->
+        <img class="bomb-image" id="bombImg" src="" alt="Bomb">
+        <!-- 폭탄 이름/위력 설명 -->
+        <div class="bomb-name" id="bombName">1단계: 흑색 화약 주머니</div>
     </div>
 
     <div>
@@ -176,7 +242,18 @@ game_html = """
     </div>
 
     <div class="log" id="logBox">
-        게임이 시작되었습니다. 강화 성공, 방어, 폭발 시 애니메이션 모션이 실행됩니다!<br>
+        게임이 시작되었습니다. 강화 성공, 방어, 폭발 시 화려한 모션이 실행됩니다!<br>
+        마지막 30단계 '행성 파괴자'를 향해 강화해보세요!<br>
+    </div>
+</div>
+
+<!-- 30단계 달성 축하 모달 -->
+<div class="modal" id="victoryModal">
+    <div class="modal-content">
+        <h2>🏆 최종 단계 달성! 🏆</h2>
+        <p>축하합니다!</p>
+        <p>당신은 위력 측정 불가, 인류 최강의 폭탄<br><b>'행성 파괴자'</b>를 완성했습니다!</p>
+        <button onclick="closeVictoryModal()" style="width: auto; padding: 10px 30px; margin-top: 20px; background-color: #ffd700; color: black;">확인</button>
     </div>
 </div>
 
@@ -184,44 +261,54 @@ game_html = """
     let money = 5000;
     let level = 1;
     let shield = 0;
+    let isMaxLevelAchieved = false;
 
-    // 1단계부터 30단계까지 제일 약한 것부터 쎈 것 순서로 배치된 30개의 이미지 URL
-    const bombIcons = {
-        1: "https://cdn-icons-png.flaticon.com/512/112/112683.png",   // Davy Crockett (초소형)
-        2: "https://cdn-icons-png.flaticon.com/512/595/595568.png",
-        3: "https://cdn-icons-png.flaticon.com/512/811/811452.png",
-        4: "https://cdn-icons-png.flaticon.com/512/2592/2592201.png",
-        5: "https://cdn-icons-png.flaticon.com/512/921/921490.png",
-        6: "https://cdn-icons-png.flaticon.com/512/1033/1033095.png",
-        7: "https://cdn-icons-png.flaticon.com/512/1685/1685816.png", // Little Boy
-        8: "https://cdn-icons-png.flaticon.com/512/2910/2910313.png", // Fat Man
-        9: "https://cdn-icons-png.flaticon.com/512/921/921434.png",
-        10: "https://cdn-icons-png.flaticon.com/512/2061/2061832.png",
-        11: "https://cdn-icons-png.flaticon.com/512/1785/1785210.png",
-        12: "https://cdn-icons-png.flaticon.com/512/1356/1356479.png",
-        13: "https://cdn-icons-png.flaticon.com/512/2936/2936886.png",
-        14: "https://cdn-icons-png.flaticon.com/512/595/595576.png",
-        15: "https://cdn-icons-png.flaticon.com/512/921/921473.png",
-        16: "https://cdn-icons-png.flaticon.com/512/2855/2855598.png",
-        17: "https://cdn-icons-png.flaticon.com/512/2936/2936932.png",
-        18: "https://cdn-icons-png.flaticon.com/512/1785/1785218.png", // Castle Bravo
-        19: "https://cdn-icons-png.flaticon.com/512/2061/2061875.png",
-        20: "https://cdn-icons-png.flaticon.com/512/811/811438.png",
-        21: "https://cdn-icons-png.flaticon.com/512/2592/2592233.png",
-        22: "https://cdn-icons-png.flaticon.com/512/1033/1033073.png",
-        23: "https://cdn-icons-png.flaticon.com/512/2910/2910340.png",
-        24: "https://cdn-icons-png.flaticon.com/512/1356/1356502.png",
-        25: "https://cdn-icons-png.flaticon.com/512/1685/1685830.png",
-        26: "https://cdn-icons-png.flaticon.com/512/921/921505.png",
-        27: "https://cdn-icons-png.flaticon.com/512/2855/2855605.png",
-        28: "https://cdn-icons-png.flaticon.com/512/2936/2936950.png",
-        29: "https://cdn-icons-png.flaticon.com/512/1785/1785235.png", // Tsar Bomba (Proto)
-        30: "https://cdn-icons-png.flaticon.com/512/2061/2061900.png"  // Tsar Bomba (최종)
+    // --- 1단계부터 30단계까지 화약 -> 폭탄 -> 다이너마이트 -> 원자폭탄 순서의 이미지 데이터 ---
+    const bombData = {
+        // [1~6단계] 화약 및 초기 폭탄
+        1: { name: "1단계: 흑색 화약 주머니", yield: "극소", img: "https://i.imgur.com/rP6hO5E.png" },
+        2: { name: "2단계: 화약 도화선 나무통", yield: "매우 작음", img: "https://i.imgur.com/vH3sY8s.png" },
+        3: { name: "3단계: 머스킷 구형 탄환", yield: "작음", img: "https://i.imgur.com/8Qj9mZJ.png" },
+        4: { name: "4단계: 심지 불붙이는 소형 흑색폭탄", yield: "작음", img: "https://i.imgur.com/b5R4f5U.png" },
+        5: { name: "5단계: 중세 공성용 대형 폭탄", yield: "보통", img: "https://i.imgur.com/C4Hk6vH.png" },
+        6: { name: "6단계: 파이프 폭탄 사제 폭발물", yield: "보통", img: "https://i.imgur.com/N6sY74U.png" },
+
+        // [7~12단계] 다이너마이트 및 고성능 폭약
+        7: { name: "7단계: 다이너마이트 1개 묶음", yield: "강함", img: "https://i.imgur.com/9nFk6Xo.png" },
+        8: { name: "8단계: 다이너마이트 다발 (T.N.T.)", yield: "강함", img: "https://i.imgur.com/A6D3B5w.png" },
+        9: { name: "9단계: C-4 플라스틱 폭약", yield: "매우 강함", img: "https://i.imgur.com/lD9UjHq.png" },
+        10: { name: "10단계: 대인 지뢰", yield: "매우 강함", img: "https://i.imgur.com/1G6O8E0.png" },
+        11: { name: "11단계: 대전차 지뢰", yield: "매우 강함", img: "https://i.imgur.com/pZp8UvL.png" },
+        12: { name: "12단계: 항공 투하용 고성능 폭탄", yield: "강력함", img: "https://i.imgur.com/uR2iR5q.png" },
+
+        // [13~24단계] 전술핵 및 실존 원자폭탄/수소폭탄
+        13: { name: "13단계: 전술핵 데이비 크로켓 (W54)", yield: "0.01 kt", img: "https://i.imgur.com/w9U1sF2.png" },
+        14: { name: "14단계: SADM 배낭형 원자폭탄", yield: "0.1 kt", img: "https://i.imgur.com/z8pQ8q4.png" },
+        15: { name: "15단계: W48 전술 핵포탄 (155mm)", yield: "0.072 kt", img: "https://i.imgur.com/Y4gUjYw.png" },
+        16: { name: "16단계: 가젯 (최초 핵실험)", yield: "19 kt", img: "https://i.imgur.com/tHqXvX7.png" },
+        17: { name: "17단계: 리틀 보이 (히로시마 투하)", yield: "15 kt", img: "https://i.imgur.com/5VbO9q3.png" },
+        18: { name: "18단계: 팻 맨 (나가사키 투하)", yield: "21 kt", img: "https://i.imgur.com/8N4Jp8g.png" },
+        19: { name: "19단계: 아이비 킹 (순수 분열 최대)", yield: "500 kt", img: "https://i.imgur.com/u1t2J5y.png" },
+        20: { name: "20단계: 캐슬 브라보 (미국 최대실험 수소폭탄)", yield: "15 Mt", img: "https://i.imgur.com/9C0Dq9y.png" },
+        21: { name: "21단계: B83 열핵폭탄 (미군 현용)", yield: "1.2 Mt", img: "https://i.imgur.com/N6d0Bw5.png" },
+        22: { name: "22단계: RDS-37 (소련 수소폭탄 설계)", yield: "1.6 Mt", img: "https://i.imgur.com/4Wn4mYw.png" },
+        23: { name: "23단계: RDS-220 차르 봄바 (50Mt 모델)", yield: "50 Mt", img: "https://i.imgur.com/Y0q9C4X.png" },
+        24: { name: "24단계: 차르 봄바 원형 설계 (100Mt 이론치)", yield: "100 Mt", img: "https://i.imgur.com/X2jY5q3.png" },
+
+        // [25~30단계] 상상속 강력한 핵무기 / 행성 파괴급
+        25: { name: "25단계: 코발트 탄 (Doomsday Device 설계)", yield: "1 Gigaton", img: "https://i.imgur.com/6U8O1D5.png" },
+        26: { name: "26단계: 고반조 열핵폭탄", yield: "5 Gigaton", img: "https://i.imgur.com/7K9XwV7.png" },
+        27: { name: "27단계: 스타브레이커 핵미사일", yield: "10 Gigaton", img: "https://i.imgur.com/r6O0W7v.png" },
+        28: { name: "28단계: 노바 버스터 대륙 파괴탄", yield: "대륙급 파괴", img: "https://i.imgur.com/u1w5R9t.png" },
+        29: { name: "29단계: 지각 붕괴장치", yield: "지각 파괴급", img: "https://i.imgur.com/6R5G4w8.png" },
+        30: { name: "30단계: 행성 파괴자 (Planet Buster)", yield: "측정 불가 (지구 종말)", img: "https://i.imgur.com/wVq6Xf3.png" }
     };
 
     function getSuccessProb(lvl) {
         if (lvl < 3) return 100;
-        return Math.max(5, 100 - (lvl * 3.2));
+        // 30단계까지 천천히 낮아지는 확률 로직
+        let p = 100 - (lvl * 3.3) + 6;
+        return Math.max(5, Math.floor(p)); // 최소 5%
     }
 
     function getSellPrice(lvl) {
@@ -229,59 +316,80 @@ game_html = """
         if (lvl === 2) return 100;
         if (lvl === 3) return 350;
         if (lvl === 4) return 800;
-        let cumulativeCost = 100 * lvl * (lvl - 1);
-        return cumulativeCost + (lvl * 400);
+        // 위력 증가에 따른 지수 기반 판매가
+        let base = 200;
+        return Math.floor(base * Math.pow(lvl, 2.5));
     }
 
-    // 화려한 연출을 위한 트리거 함수
-    function triggerAnimation(animClass) {
-        const bombElement = document.getElementById("bombImg");
-        const container = document.getElementById("mainContainer");
-        
-        bombElement.className = "bomb-image " + animClass;
-        container.classList.add("shake");
+    // --- 화려한 모션 연출 함수 ---
+    function triggerAnimation(type) {
+        const body = document.getElementById("gameBody");
+        const bombImg = document.getElementById("bombImg");
+        const bombContainer = document.getElementById("bombContainer");
+        const shieldWave = document.getElementById("shieldWave");
 
-        setTimeout(() => {
-            bombElement.className = "bomb-image";
-            container.classList.remove("shake");
-        }, 700);
+        // 이전 애니메이션 클래스 제거
+        bombImg.className = "bomb-image";
+        body.classList.remove("shake-screen");
+
+        // 애니메이션 트리거 (리플로우 발생)
+        void bombImg.offsetWidth; 
+
+        if (type === 'success') {
+            bombImg.classList.add("anim-success");
+        } else if (type === 'explode') {
+            bombImg.classList.add("anim-explode");
+            body.classList.add("shake-screen"); // 화면 진동
+        } else if (type === 'shield') {
+            bombImg.classList.add("anim-shield");
+            shieldWave.classList.add("active"); // 푸른 방어막
+            setTimeout(() => shieldWave.classList.remove("active"), 500);
+        }
     }
 
-    // Web Audio API를 이용한 웅장한 승리 오케스트라 브금 재생
-    function playVictoryBGM() {
+    // --- 30단계 승리 브금 (Web Audio API로 직접 생성) ---
+    function playVictorySound() {
         try {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
-            const ctx = new AudioContext();
+            const audioCtx = new AudioContext();
             
-            const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50]; // 도-미-솔-도-미-솔-도 웅장한 아르페지오
-            notes.forEach((freq, index) => {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
+            const notes = [
+                { f: 261.63, d: 0.1, t: 0 },   // 도
+                { f: 329.63, d: 0.1, t: 0.1 }, // 미
+                { f: 392.00, d: 0.1, t: 0.2 }, // 솔
+                { f: 523.25, d: 0.3, t: 0.3 }, // 도 (높은 도)
+                { f: 392.00, d: 0.1, t: 0.7 }, // 솔
+                { f: 523.25, d: 0.8, t: 0.8 }  // 도 (길게)
+            ];
+
+            notes.forEach(note => {
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
                 
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(freq, ctx.currentTime + (index * 0.12));
+                osc.type = 'triangle'; // 웅장한 느낌을 주는 트라이앵글 파형
+                osc.frequency.setValueAtTime(note.f, audioCtx.currentTime + note.t);
                 
-                gain.gain.setValueAtTime(0.3, ctx.currentTime + (index * 0.12));
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (index * 0.12) + 1.5);
+                gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime + note.t);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + note.t + note.d);
                 
-                osc.connect(gain);
-                gain.connect(ctx.destination);
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
                 
-                osc.start(ctx.currentTime + (index * 0.12));
-                osc.stop(ctx.currentTime + (index * 0.12) + 1.5);
+                osc.start(audioCtx.currentTime + note.t);
+                osc.stop(audioCtx.currentTime + note.t + note.d);
             });
-        } catch(e) {
+        } catch (e) {
             console.log("Audio not supported or blocked by browser policies.");
         }
     }
 
     function showVictoryModal() {
-        document.getElementById("victoryModal").style.display = "flex";
-        playVictoryBGM();
+        document.getElementById("victoryModal").classList.add("show");
+        playVictorySound();
     }
 
-    function closeModal() {
-        document.getElementById("victoryModal").style.display = "none";
+    function closeVictoryModal() {
+        document.getElementById("victoryModal").classList.remove("show");
     }
 
     function updateUI() {
@@ -289,30 +397,35 @@ game_html = """
         document.getElementById("level").innerText = level;
         document.getElementById("shield").innerText = shield;
         
-        let currentCost = level * 200;
+        let currentCost = Math.floor(200 * Math.pow(1.15, level - 1));
         document.getElementById("cost").innerText = currentCost.toLocaleString();
         
         let sellBtn = document.getElementById("sellBtn");
         if (level === 1) {
             sellBtn.disabled = true;
-            sellBtn.innerText = "원자폭탄 판매 (1단계는 판매 불가)";
+            sellBtn.innerText = "판매 불가 (1단계)";
         } else {
             sellBtn.disabled = false;
             let currentSellPrice = getSellPrice(level);
-            sellBtn.innerText = `원자폭탄 판매 (${currentSellPrice.toLocaleString()}원)`;
+            sellBtn.innerText = `폭탄 판매 (${currentSellPrice.toLocaleString()}원)`;
         }
 
-        let prob = getSuccessProb(level).toFixed(1);
-        document.getElementById("prob").innerText = prob;
+        let prob = getSuccessProb(level);
+        document.getElementById("prob").innerText = `(성공 확률: ${prob}%)`;
 
-        // 레벨에 맞는 이미지 매핑
-        let currentImg = bombIcons[1];
-        if (bombIcons[level]) {
-            currentImg = bombIcons[level];
-        } else if (level > 30) {
-            currentImg = bombIcons[30];
+        // 폭탄 정보 업데이트 (이름 및 위력 설명)
+        const data = bombData[level] || bombData[30]; // 30단계 초과 시 30단계 고정
+        document.getElementById("bombName").innerHTML = `<b>${data.name}</b><br>(위력: ${data.yield})`;
+        document.getElementById("bombImg").src = data.img;
+
+        // 30단계 달성 시 만렙 처리
+        if (level === 30 && !isMaxLevelAchieved) {
+            isMaxLevelAchieved = true;
+            document.getElementById("upgradeBtn").disabled = true;
+            document.getElementById("upgradeBtn").innerText = "최고 단계 달성!";
+            addLog(`🏆 축하합니다! 최종 무기 <span style="color: #ffd700;">[${data.name}]</span>를 완성했습니다!`);
+            setTimeout(showVictoryModal, 800); // 연출 후 팝업
         }
-        document.getElementById("bombImg").src = currentImg;
     }
 
     function addLog(message) {
@@ -322,7 +435,7 @@ game_html = """
     }
 
     function tryUpgrade() {
-        let cost = level * 200;
+        let cost = Math.floor(200 * Math.pow(1.15, level - 1));
         if (money < cost) {
             addLog("❌ 돈이 부족합니다!");
             return;
@@ -334,24 +447,20 @@ game_html = """
 
         if (chance < successProb) {
             level++;
-            triggerAnimation("anim-success");
-            addLog(`✨ <span style="color: #4CAF50;">성공!</span> 원자폭탄이 ${level}단계로 강화되었습니다.`);
-            
-            // 30단계 달성 시 웅장한 브금과 축하 모달 실행
-            if (level === 30) {
-                setTimeout(() => {
-                    showVictoryModal();
-                }, 500);
-            }
+            triggerAnimation('success');
+            const data = bombData[level];
+            addLog(`✨ <span style="color: #4CAF50;">성공!</span> 폭탄이 ${level}단계 <span style="color:#eee;">[${data.name}]</span>로 강화되었습니다.`);
         } else {
             if (shield > 0) {
                 shield--;
-                triggerAnimation("anim-shield");
-                addLog(`🛡️ <span style="color: #2196F3;">방어 성공!</span> 폭발 방지권이 발동했습니다.`);
+                triggerAnimation('shield');
+                addLog(`🛡️ <span style="color: #2196F3;">방어 성공!</span> 폭발 방지권이 실패를 막았습니다.`);
             } else {
                 level = 1;
-                triggerAnimation("anim-explode");
-                addLog(`💥 <span style="color: #ff4500;">실패 및 폭발!</span> 1단계로 초기화되었습니다.`);
+                isMaxLevelAchieved = false; // 폭발 시 만렙 상태 초기화
+                document.getElementById("upgradeBtn").disabled = false;
+                triggerAnimation('explode');
+                addLog(`💥 <span style="color: #ff4500;">폭발실패!</span> 폭탄이 폭발하여 1단계로 초기화되었습니다.`);
             }
         }
         updateUI();
@@ -359,13 +468,15 @@ game_html = """
 
     function sellBomb() {
         if (level === 1) {
-            addLog("❌ 1단계 원자폭탄은 판매할 수 없습니다!");
+            addLog("❌ 1단계는 판매할 수 없습니다!");
             return;
         }
         let sellPrice = getSellPrice(level);
         money += sellPrice;
-        addLog(`💰 ${level}단계 원자폭탄을 ${sellPrice.toLocaleString()}원에 판매했습니다.`);
+        addLog(`💰 ${level}단계 폭탄을 <b style="color:#ffd700;">${sellPrice.toLocaleString()}원</b>에 판매하고 1단계로 초기화했습니다.`);
         level = 1;
+        isMaxLevelAchieved = false; // 판매 시 만렙 상태 초기화
+        document.getElementById("upgradeBtn").disabled = false;
         updateUI();
     }
 
@@ -381,6 +492,7 @@ game_html = """
         updateUI();
     }
 
+    // 초기 실행
     updateUI();
 </script>
 
@@ -388,4 +500,5 @@ game_html = """
 </html>
 """
 
-components.html(game_html, height=560, scrolling=True)
+# Streamlit 에 HTML 코드 주입
+components.html(game_html, height=600, scrolling=True)
